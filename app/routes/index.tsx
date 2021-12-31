@@ -52,12 +52,15 @@ function IndexPage() {
         </>
       ) : (
         <>
-          <textarea
-            className="w-full p-2 border rounded-md resize-none border-zinc-400"
-            readOnly
-            value={data.cuids.join("\n")}
-            rows={data.cuids.length}
-          />
+          <label>
+            <span className="block text-xl">Here are your CUIDs:</span>
+            <textarea
+              className="w-full p-2 border rounded-md resize-none border-zinc-400"
+              readOnly
+              value={data.cuids.join("\n")}
+              rows={data.cuids.length}
+            />
+          </label>
           <button
             type="button"
             className="block px-4 py-2 mt-2 text-white bg-indigo-500 rounded-md"
