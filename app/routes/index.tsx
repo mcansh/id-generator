@@ -14,24 +14,24 @@ function IndexPage() {
   let data = useLoaderData<RouteData>();
 
   return (
-    <main className="max-w-screen-sm mx-auto">
+    <main className="container flex flex-col min-h-screen p-4 mx-auto">
       <h1 className="text-4xl">CUID Generator</h1>
 
-      <div className="mt-2">
-        <label htmlFor="cuid" className="text-xl block">
+      <div className="flex-auto mt-2 md:flex-none">
+        <label htmlFor="cuid" className="block text-xl">
           Here is your CUID:
         </label>
         <div className="flex mt-2">
           <input
             type="text"
             id="cuid"
-            className="border border-zinc-400 rounded-l-md p-2 w-full"
+            className="w-full p-2 border border-zinc-400 rounded-l-md"
             readOnly
             value={data.cuid}
           />
           <button
             type="button"
-            className="rounded-r-md bg-indigo-500 text-white px-4 py-2"
+            className="px-4 py-2 text-white bg-indigo-500 rounded-r-md"
             onClick={() => {
               return copyToClipboard(data.cuid);
             }}
@@ -44,7 +44,7 @@ function IndexPage() {
       <div className="mt-2">
         <Form>
           <button
-            className="bg-indigo-500 text-white px-4 py-2 rounded-md"
+            className="w-full px-4 py-2 text-white bg-indigo-500 rounded-md md:w-auto"
             type="submit"
           >
             Get another
