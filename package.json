@@ -4,8 +4,9 @@
   "description": "",
   "license": "",
   "scripts": {
-    "build": "remix build",
+    "build:remix": "remix build",
     "build:css": "tailwindcss -i ./styles/global.css -o ./app/styles/global.css --minify",
+    "build": "npm run build:css && npm run build:remix",
     "dev": "remix dev",
     "dev:css": "tailwindcss -i ./styles/global.css -o ./app/styles/global.css --watch",
     "postinstall": "remix setup node"
