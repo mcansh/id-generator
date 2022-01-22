@@ -1,88 +1,115 @@
-import cuid from "cuid";
-import { Form, json, LoaderFunction, useLoaderData, useLocation } from "remix";
+import {
+  Form,
+  json,
+  LoaderFunction,
+  useLoaderData,
+  useSearchParams,
+} from "remix";
 import { copyToClipboard } from "copy-lite";
+import cuid from "cuid";
+import { v4 as uuid } from "@lukeed/uuid";
+import { nanoid } from "nanoid";
 
 interface RouteData {
-  cuids: Array<string>;
+  generated: Array<string>;
 }
+
+let idTypes = ["cuid", "uuid", "nanoid"] as const;
 
 let loader: LoaderFunction = ({ request }) => {
   let url = new URL(request.url);
   let count = parseInt(url.searchParams.get("count") || "1");
+  let type = (url.searchParams.get("type") || "cuid") as typeof idTypes[number];
 
-  let cuids = [...Array.from({ length: count })].map(() => cuid());
+  let idsToGenerate = [...Array.from({ length: count })];
 
-  return json<RouteData>({ cuids: cuids });
+  switch (type) {
+    case "cuid": {
+      let generated = idsToGenerate.map(() => cuid());
+      return json<RouteData>({ generated });
+    }
+    case "uuid": {
+      let generated = idsToGenerate.map(() => uuid());
+      return json<RouteData>({ generated });
+    }
+    case "nanoid": {
+      let generated = idsToGenerate.map(() => nanoid());
+      return json<RouteData>({ generated });
+    }
+    default: {
+      throw new Error(`Unknown type: ${type}`);
+    }
+  }
 };
 
 function IndexPage() {
   let data = useLoaderData<RouteData>();
-  let single = data?.cuids.length === 1;
-  let location = useLocation();
+  let [search] = useSearchParams();
+  let type = (search.get("type") || "cuid") as typeof idTypes[number];
+  let count = search.get("count") || "1";
 
   return (
-    <main className="flex flex-col max-w-screen-sm min-h-screen p-4 mx-auto">
-      <h1 className="text-4xl">CUID Generator</h1>
-
-      {single ? (
-        <>
-          <div className="flex-auto mt-2 md:flex-none">
-            <label htmlFor="cuid" className="block text-xl">
-              Here is your CUID:
-            </label>
-            <div className="flex mt-2">
+    <main className="flex flex-col min-h-screen">
+      <div className="flex-auto w-full max-w-screen-sm p-4 mx-auto mt-2 md:flex-none">
+        <h1 className="text-4xl">ID Generator</h1>
+        <p className="block text-xl">Here are your generated {type}s</p>
+        <div className="mt-2 space-y-2">
+          {data.generated.map((id, index) => (
+            <div key={id} className="flex">
               <input
                 type="text"
-                id="cuid"
                 className="w-full p-2 border-t border-b border-l border-zinc-400 rounded-l-md"
                 readOnly
-                value={data.cuids[0]}
+                value={id}
+                aria-label={`generated ${type} id ${index + 1}`}
               />
               <button
                 type="button"
                 className="px-4 py-2 text-white bg-indigo-500 border-t border-b border-r border-zinc-400 rounded-r-md"
-                onClick={() => {
-                  return copyToClipboard(data.cuids[0]);
-                }}
+                onClick={() => copyToClipboard(id)}
               >
                 Copy
               </button>
             </div>
-          </div>
-        </>
-      ) : (
-        <>
-          <label>
-            <span className="block text-xl">Here are your CUIDs:</span>
-            <textarea
-              className="w-full p-2 border rounded-md resize-none border-zinc-400"
-              readOnly
-              value={data.cuids.join("\n")}
-              rows={data.cuids.length}
-            />
-          </label>
-          <button
-            type="button"
-            className="block px-4 py-2 mt-2 text-white bg-indigo-500 rounded-md"
-            onClick={() => {
-              return copyToClipboard(data.cuids.join("\n"));
-            }}
-          >
-            Copy
-          </button>
-        </>
-      )}
-
-      <div className="mt-2">
-        <Form replace action={`${location.pathname}${location.search}`}>
-          <button
-            className="w-full px-4 py-2 text-white bg-indigo-500 rounded-md md:w-auto"
-            type="submit"
-          >
-            Get {single ? "another" : `${data.cuids.length} more`}
-          </button>
-        </Form>
+          ))}
+        </div>
       </div>
+
+      <Form
+        replace
+        className="w-full max-w-screen-sm p-4 py-4 mx-auto mt-2 space-y-2 rounded shadow bg-gray-50"
+      >
+        <label className="block text-xl">
+          <span>What type of ID do you want to generate?</span>
+          <select
+            name="type"
+            className="block w-full py-2 pl-3 pr-10 mt-1 text-base border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            defaultValue={type}
+          >
+            {idTypes.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-xl">
+          <span>How many do you want?</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            name="count"
+            defaultValue={count}
+            className="block w-full py-2 pl-3 pr-10 mt-1 text-base border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          />
+        </label>
+        <button
+          className="w-full px-4 py-2 text-white bg-indigo-500 rounded-md md:w-auto"
+          type="submit"
+        >
+          Get more
+        </button>
+      </Form>
     </main>
   );
 }
