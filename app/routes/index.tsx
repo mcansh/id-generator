@@ -33,6 +33,8 @@ let loader: LoaderFunction = async ({ request }) => {
       count,
     });
   }
+
+  return json<LoaderData>({ generated: [] });
 };
 
 let action: ActionFunction = async ({ request }) => {
