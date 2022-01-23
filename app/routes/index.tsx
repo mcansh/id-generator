@@ -12,14 +12,21 @@ import { nanoid } from "nanoid";
 
 interface RouteData {
   generated: Array<string>;
+  type?: typeof idTypes[number];
+  count?: number;
 }
 
 let idTypes = ["cuid", "uuid", "nanoid"] as const;
 
 let loader: LoaderFunction = ({ request }) => {
   let url = new URL(request.url);
-  let count = parseInt(url.searchParams.get("count") || "1");
-  let type = (url.searchParams.get("type") || "cuid") as typeof idTypes[number];
+  let rawCount = url.searchParams.get("count");
+  let count = rawCount ? Number(url.searchParams.get("count")) : undefined;
+  let type = url.searchParams.get("type") as typeof idTypes[number];
+
+  if (!type || !count) {
+    return json<RouteData>({ count, type, generated: [] });
+  }
 
   let idsToGenerate = [...Array.from({ length: count })];
 
@@ -43,41 +50,42 @@ let loader: LoaderFunction = ({ request }) => {
 };
 
 function IndexPage() {
-  let data = useLoaderData<RouteData>();
-  let [search] = useSearchParams();
-  let type = (search.get("type") || "cuid") as typeof idTypes[number];
-  let count = search.get("count") || "1";
+  let { count = 1, generated, type = "cuid" } = useLoaderData<RouteData>();
 
   return (
     <main className="flex flex-col min-h-screen">
       <div className="flex-auto w-full max-w-screen-sm p-4 mx-auto mt-2 md:flex-none">
         <h1 className="text-4xl">ID Generator</h1>
-        <p className="block text-xl">Here are your generated {type}s</p>
-        <div className="mt-2 space-y-2">
-          {data.generated.map((id, index) => (
-            <input
-              key={id}
-              type="text"
-              className="w-full p-2 border rounded-md border-zinc-400"
-              readOnly
-              value={id}
-              aria-label={`generated ${type} id ${index + 1}`}
-            />
-          ))}
+        {generated.length > 0 && (
+          <>
+            <p className="block text-xl">Here are your generated {type}s</p>
+            <div className="mt-2 space-y-2">
+              {generated.map((id, index) => (
+                <input
+                  key={id}
+                  type="text"
+                  className="w-full p-2 border rounded-md border-zinc-400"
+                  readOnly
+                  value={id}
+                  aria-label={`generated ${type} id ${index + 1}`}
+                />
+              ))}
 
-          <button
-            type="button"
-            className="w-full px-4 py-2 text-white bg-indigo-500 rounded-md md:w-auto"
-            onClick={() => copyToClipboard(data.generated.join("\n"))}
-          >
-            Copy
-          </button>
-        </div>
+              <button
+                type="button"
+                className="w-full px-4 py-2 text-white bg-indigo-500 rounded-md md:w-auto"
+                onClick={() => copyToClipboard(generated.join("\n"))}
+              >
+                Copy
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       <Form
         replace
-        className="w-full max-w-screen-sm p-4 py-4 mx-auto mt-2 space-y-2 rounded shadow bg-gray-50"
+        className="w-full max-w-screen-sm p-4 py-4 mx-auto mt-2 space-y-2 bg-gray-100 rounded"
       >
         <label className="block text-xl">
           <span>What type of ID do you want to generate?</span>
@@ -107,7 +115,7 @@ function IndexPage() {
           className="w-full px-4 py-2 text-white bg-indigo-500 rounded-md md:w-auto"
           type="submit"
         >
-          Get more
+          {generated.length > 0 ? "Generate Again" : "Generate"}
         </button>
       </Form>
     </main>
