@@ -55,23 +55,23 @@ function IndexPage() {
         <p className="block text-xl">Here are your generated {type}s</p>
         <div className="mt-2 space-y-2">
           {data.generated.map((id, index) => (
-            <div key={id} className="flex">
-              <input
-                type="text"
-                className="w-full p-2 border-t border-b border-l border-zinc-400 rounded-l-md"
-                readOnly
-                value={id}
-                aria-label={`generated ${type} id ${index + 1}`}
-              />
-              <button
-                type="button"
-                className="px-4 py-2 text-white bg-indigo-500 border-t border-b border-r border-zinc-400 rounded-r-md"
-                onClick={() => copyToClipboard(id)}
-              >
-                Copy
-              </button>
-            </div>
+            <input
+              key={id}
+              type="text"
+              className="w-full p-2 border rounded-md border-zinc-400"
+              readOnly
+              value={id}
+              aria-label={`generated ${type} id ${index + 1}`}
+            />
           ))}
+
+          <button
+            type="button"
+            className="w-full px-4 py-2 text-white bg-indigo-500 rounded-md md:w-auto"
+            onClick={() => copyToClipboard(data.generated.join("\n"))}
+          >
+            Copy
+          </button>
         </div>
       </div>
 
