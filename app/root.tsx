@@ -7,19 +7,12 @@ import {
   Scripts,
   ScrollRestoration,
 } from "remix";
-import type { MetaFunction } from "remix";
 
 import globalStylesUrl from "./styles/global.css";
 
-export const meta: MetaFunction = () => {
-  return { title: "New Remix App" };
-};
+let links: LinksFunction = () => [{ rel: "stylesheet", href: globalStylesUrl }];
 
-export const links: LinksFunction = () => [
-  { rel: "stylesheet", href: globalStylesUrl },
-];
-
-export default function App() {
+function App() {
   return (
     <html lang="en">
       <head>
@@ -37,3 +30,6 @@ export default function App() {
     </html>
   );
 }
+
+export default App;
+export { links };
