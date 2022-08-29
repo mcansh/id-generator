@@ -8,3 +8,4 @@
 /app/styles
 
 .ds_store
+.env
