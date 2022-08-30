@@ -1,43 +1,26 @@
 import {
-  ActionFunction,
+  ActionArgs,
   Form,
   json,
-  LoaderFunction,
+  LoaderArgs,
   MetaFunction,
   redirect,
   useLoaderData,
 } from "remix";
 import { copyToClipboard } from "copy-lite";
-import { getSession, sessionStorage } from "~/session.server";
+import { getSession } from "~/session.server";
 import { generateIds, IdType, idTypes } from "~/generate";
 
-interface LoaderData {
-  generated: Array<string>;
-  type?: IdType;
-  count?: number;
-}
-
-let meta: MetaFunction = () => {
+export let meta: MetaFunction = () => {
   return { title: "ID Generator" };
 };
 
-let loader: LoaderFunction = async ({ request }) => {
+export async function loader({ request }: LoaderArgs) {
   let session = await getSession(request);
-  let type = session.get("type");
-  let count = session.get("count");
+  return json(session.get());
+}
 
-  if (type && count) {
-    return json<LoaderData>({
-      generated: generateIds(type, count),
-      type,
-      count,
-    });
-  }
-
-  return json<LoaderData>({ generated: [] });
-};
-
-let action: ActionFunction = async ({ request }) => {
+export async function action({ request }: ActionArgs) {
   let session = await getSession(request);
   let formData = await request.formData();
 
@@ -49,26 +32,29 @@ let action: ActionFunction = async ({ request }) => {
     return redirect("/");
   }
 
-  session.set("type", type);
-  session.set("count", count);
+  session.set({
+    type,
+    count,
+    ids: generateIds(type, count),
+  });
 
   return redirect("/", {
-    headers: { "Set-Cookie": await sessionStorage.commitSession(session) },
+    headers: { "Set-Cookie": await session.save() },
   });
-};
+}
 
-function IndexPage() {
-  let { generated, count, type } = useLoaderData<LoaderData>();
+export default function IndexPage() {
+  let { ids, count, type } = useLoaderData<typeof loader>();
 
   return (
     <main className="flex flex-col min-h-screen">
       <div className="flex-auto w-full max-w-screen-sm p-4 mx-auto mt-2 md:flex-none">
         <h1 className="text-4xl">ID Generator</h1>
-        {generated.length > 0 && (
+        {ids.length > 0 ? (
           <>
             <p className="block text-xl">Here are your generated {type}s</p>
             <div className="mt-2 space-y-2">
-              {generated.map((id, index) => (
+              {ids.map((id, index) => (
                 <input
                   key={id}
                   type="text"
@@ -79,21 +65,39 @@ function IndexPage() {
                 />
               ))}
 
-              <button
-                type="button"
-                className="w-full px-4 py-2 text-white bg-indigo-500 rounded-md md:w-auto"
-                onClick={() => copyToClipboard(generated.join("\n"))}
-              >
-                Copy
-              </button>
+              <div className="grid grid-cols-2 sm:flex gap-4 sm:gap-0 sm:space-x-4">
+                <button
+                  type="button"
+                  className="w-full px-4 py-2 text-white bg-indigo-500 rounded-md md:w-auto"
+                  onClick={() => copyToClipboard(ids.join("\n"))}
+                >
+                  Copy
+                </button>
+
+                <Form
+                  reloadDocument
+                  method="post"
+                  action="/download"
+                  className="w-full"
+                >
+                  <button
+                    type="submit"
+                    name="download"
+                    value="true"
+                    className="w-full px-4 py-2 text-white bg-indigo-500 rounded-md md:w-auto"
+                  >
+                    Download
+                  </button>
+                </Form>
+              </div>
             </div>
           </>
-        )}
+        ) : null}
       </div>
 
       <Form
         replace
-        className="w-full max-w-screen-sm p-4 py-4 mx-auto mt-2 space-y-2 bg-gray-100 rounded"
+        className="w-full max-w-screen-sm p-4 py-4 mx-auto space-y-2 bg-gray-100 rounded"
         method="post"
       >
         <label className="block text-xl">
@@ -124,12 +128,9 @@ function IndexPage() {
           className="w-full px-4 py-2 text-white bg-indigo-500 rounded-md md:w-auto"
           type="submit"
         >
-          {generated.length > 0 ? "Generate Again" : "Generate"}
+          {ids.length > 0 ? "Generate Again" : "Generate"}
         </button>
       </Form>
     </main>
   );
 }
-
-export default IndexPage;
-export { action, loader, meta };
