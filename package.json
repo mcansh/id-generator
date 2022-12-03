@@ -15,7 +15,7 @@
   "dependencies": {
     "@lukeed/uuid": "2.0.0",
     "@remix-run/react": "1.7.0",
-    "@remix-run/serve": "1.7.0",
+    "@remix-run/serve": "1.8.0",
     "@remix-run/vercel": "1.7.0",
     "copy-lite": "0.1.2",
     "cuid": "2.1.8",
