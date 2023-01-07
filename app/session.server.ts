@@ -1,6 +1,6 @@
 import { createCookieSessionStorage } from "remix";
 import invariant from "tiny-invariant";
-import { IdType } from "./generate";
+import { IdType } from "./generate.server";
 
 invariant(process.env.SESSION_SECRET, "SESSION_SECRET must be set");
 

@@ -9,7 +9,7 @@ import {
 } from "remix";
 import { copyToClipboard } from "copy-lite";
 import { getSession } from "~/session.server";
-import { generateIds, IdType, idTypes } from "~/generate";
+import { generateIds, IdType, idTypes } from "~/generate.server";
 
 export let meta: MetaFunction = () => {
   return { title: "ID Generator" };
@@ -17,7 +17,7 @@ export let meta: MetaFunction = () => {
 
 export async function loader({ request }: LoaderArgs) {
   let session = await getSession(request);
-  return json(session.get());
+  return json({ ...session.get(), idTypes });
 }
 
 export async function action({ request }: ActionArgs) {
@@ -44,7 +44,7 @@ export async function action({ request }: ActionArgs) {
 }
 
 export default function IndexPage() {
-  let { ids, count, type } = useLoaderData<typeof loader>();
+  let { ids, count, type, idTypes } = useLoaderData<typeof loader>();
 
   return (
     <main className="flex flex-col min-h-screen">

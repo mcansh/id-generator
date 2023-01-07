@@ -1,5 +1,4 @@
 import { ActionArgs, redirect } from "remix";
-import { IdType } from "~/generate";
 import { getSession } from "~/session.server";
 
 export async function action({ request }: ActionArgs) {
