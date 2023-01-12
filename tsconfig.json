@@ -9,6 +9,7 @@
     "lib": ["DOM", "DOM.Iterable", "ES2019"],
     "moduleResolution": "node",
     "resolveJsonModule": true,
+    "importsNotUsedAsValues": "error",
     "strict": true,
     "target": "ES2019",
     "baseUrl": ".",

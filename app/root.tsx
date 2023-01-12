@@ -1,18 +1,19 @@
+import type { LinksFunction } from "@remix-run/node";
 import {
   Links,
-  LinksFunction,
   LiveReload,
   Meta,
   Outlet,
   Scripts,
   ScrollRestoration,
-} from "remix";
-
+} from "@remix-run/react";
 import globalStylesUrl from "./styles/global.css";
 
-let links: LinksFunction = () => [{ rel: "stylesheet", href: globalStylesUrl }];
+export let links: LinksFunction = () => {
+  return [{ rel: "stylesheet", href: globalStylesUrl }];
+};
 
-function App() {
+export default function App() {
   return (
     <html lang="en">
       <head>
@@ -30,6 +31,3 @@ function App() {
     </html>
   );
 }
-
-export default App;
-export { links };

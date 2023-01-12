@@ -1,10 +1,10 @@
-import { createCookieSessionStorage } from "remix";
+import { createCookieSessionStorage } from "@remix-run/node";
 import invariant from "tiny-invariant";
-import { IdType } from "./generate.server";
+import type { IdType } from "./generate.server";
 
 invariant(process.env.SESSION_SECRET, "SESSION_SECRET must be set");
 
-const sessionStorage = createCookieSessionStorage({
+export const sessionStorage = createCookieSessionStorage({
   cookie: {
     name: "__session",
     httpOnly: true,
@@ -16,7 +16,7 @@ const sessionStorage = createCookieSessionStorage({
   },
 });
 
-async function getSession(request: Request) {
+export async function getSession(request: Request) {
   let cookie = request.headers.get("Cookie");
   let session = await sessionStorage.getSession(cookie);
 
@@ -38,5 +38,3 @@ async function getSession(request: Request) {
     },
   };
 }
-
-export { sessionStorage, getSession };

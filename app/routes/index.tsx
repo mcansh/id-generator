@@ -1,12 +1,10 @@
 import {
-  ActionArgs,
-  Form,
+  DataFunctionArgs,
   json,
-  LoaderArgs,
   MetaFunction,
   redirect,
-  useLoaderData,
-} from "remix";
+} from "@remix-run/node";
+import { Form, useLoaderData } from "@remix-run/react";
 import { copyToClipboard } from "copy-lite";
 import { getSession } from "~/session.server";
 import { generateIds, IdType, idTypes } from "~/generate.server";
@@ -15,12 +13,12 @@ export let meta: MetaFunction = () => {
   return { title: "ID Generator" };
 };
 
-export async function loader({ request }: LoaderArgs) {
+export async function loader({ request }: DataFunctionArgs) {
   let session = await getSession(request);
   return json({ ...session.get(), idTypes });
 }
 
-export async function action({ request }: ActionArgs) {
+export async function action({ request }: DataFunctionArgs) {
   let session = await getSession(request);
   let formData = await request.formData();
 

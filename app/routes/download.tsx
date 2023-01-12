@@ -1,11 +1,13 @@
-import { ActionArgs, redirect } from "remix";
+import type { DataFunctionArgs } from "@remix-run/node";
 import { getSession } from "~/session.server";
 
-export async function action({ request }: ActionArgs) {
+export async function action({ request }: DataFunctionArgs) {
   let session = await getSession(request);
   let { count, type, ids } = session.get();
 
-  if (!type || !count) return redirect("/");
+  if (!type || !count) {
+    return new Response("No IDs to download", { status: 422 });
+  }
 
   let filename = `${type}-${count}.txt`;
   let content = ids.join("\n");
