@@ -36,7 +36,7 @@ export async function getSession(request: Request) {
     get() {
       return {
         count: session.get("count") ?? 1,
-        type: session.get("type") ?? "nanoid",
+        type: session.get("type") ?? "cuid",
         ids: session.get("ids") ?? [],
       };
     },
