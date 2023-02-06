@@ -6,8 +6,10 @@ import createHyperIdInstance from "hyperid";
 let hyperid = createHyperIdInstance();
 
 export let idTypes = ["cuid", "uuid", "nanoid", "hyperid"] as const;
+export let deprecatedIdTypes = ["cuid2"] as const;
 
 export type IdType = (typeof idTypes)[number];
+export type DeprecatedIdType = (typeof deprecatedIdTypes)[number];
 
 function makeArray(length: number) {
   return [...Array.from({ length })];

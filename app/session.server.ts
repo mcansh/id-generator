@@ -3,14 +3,14 @@ import invariant from "tiny-invariant";
 import { createTypedSessionStorage } from "remix-utils";
 import { z } from "zod";
 
-import type { IdType } from "./generate.server";
-import { idTypes } from "./generate.server";
+import type { DeprecatedIdType, IdType } from "./generate.server";
+import { idTypes, deprecatedIdTypes } from "./generate.server";
 
 invariant(process.env.SESSION_SECRET, "SESSION_SECRET must be set");
 
 let schema = z.object({
   count: z.number().default(1),
-  type: z.enum(idTypes).default("cuid"),
+  type: z.enum([...idTypes, ...deprecatedIdTypes]).default("cuid"),
   ids: z.array(z.string()).default([]),
 });
 
@@ -34,11 +34,13 @@ export async function getSession(request: Request) {
 
   return {
     get() {
-      return {
-        count: session.get("count") ?? 1,
-        type: session.get("type") ?? "cuid",
-        ids: session.get("ids") ?? [],
-      };
+      let count = session.get("count") ?? 1;
+      let ids = session.get("ids") ?? [];
+      let type = session.get("type") ?? "cuid";
+      if (deprecatedIdTypes.includes(type as DeprecatedIdType)) {
+        type = "cuid";
+      }
+      return { count, type, ids };
     },
     set(data: { count: number; type: IdType; ids: Array<string> }) {
       session.set("count", data.count);
