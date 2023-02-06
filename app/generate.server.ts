@@ -1,12 +1,11 @@
-import cuid from "cuid";
 import { v4 as uuid } from "@lukeed/uuid";
 import { nanoid } from "nanoid";
-import { createId as cuid2 } from "@paralleldrive/cuid2";
+import { createId as cuid } from "@paralleldrive/cuid2";
 import createHyperIdInstance from "hyperid";
 
 let hyperid = createHyperIdInstance();
 
-export let idTypes = ["cuid", "cuid2", "uuid", "nanoid", "hyperid"] as const;
+export let idTypes = ["cuid", "uuid", "nanoid", "hyperid"] as const;
 
 export type IdType = (typeof idTypes)[number];
 
@@ -24,9 +23,6 @@ export function generateIds(type: IdType, count: number) {
     }
     case "nanoid": {
       return makeArray(count).map(() => nanoid());
-    }
-    case "cuid2": {
-      return makeArray(count).map(() => cuid2());
     }
     case "hyperid": {
       return makeArray(count).map(() => hyperid());

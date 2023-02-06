@@ -10,7 +10,7 @@ invariant(process.env.SESSION_SECRET, "SESSION_SECRET must be set");
 
 let schema = z.object({
   count: z.number().default(1),
-  type: z.enum(idTypes).default("nanoid"),
+  type: z.enum(idTypes).default("cuid"),
   ids: z.array(z.string()).default([]),
 });
 
