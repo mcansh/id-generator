@@ -12,6 +12,7 @@
     "importsNotUsedAsValues": "error",
     "strict": true,
     "target": "ES2019",
+    "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
       "~/*": ["./app/*"]

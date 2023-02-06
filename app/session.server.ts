@@ -1,10 +1,20 @@
 import { createCookieSessionStorage } from "@remix-run/node";
 import invariant from "tiny-invariant";
+import { createTypedSessionStorage } from "remix-utils";
+import { z } from "zod";
+
 import type { IdType } from "./generate.server";
+import { idTypes } from "./generate.server";
 
 invariant(process.env.SESSION_SECRET, "SESSION_SECRET must be set");
 
-export const sessionStorage = createCookieSessionStorage({
+let schema = z.object({
+  count: z.number().default(1),
+  type: z.enum(idTypes).default("nanoid"),
+  ids: z.array(z.string()).default([]),
+});
+
+const sessionStorage = createCookieSessionStorage({
   cookie: {
     name: "__session",
     httpOnly: true,
@@ -16,19 +26,21 @@ export const sessionStorage = createCookieSessionStorage({
   },
 });
 
+let typedSessionStorage = createTypedSessionStorage({ sessionStorage, schema });
+
 export async function getSession(request: Request) {
   let cookie = request.headers.get("Cookie");
-  let session = await sessionStorage.getSession(cookie);
+  let session = await typedSessionStorage.getSession(cookie);
 
   return {
     get() {
       return {
-        count: session.get("count") as number | undefined,
-        type: session.get("type") as IdType | undefined,
-        ids: (session.get("ids") as Array<string>) || [],
+        count: session.get("count") ?? 1,
+        type: session.get("type") ?? "nanoid",
+        ids: session.get("ids") ?? [],
       };
     },
-    set(data: { count?: number; type?: IdType; ids?: Array<string> }) {
+    set(data: { count: number; type: IdType; ids: Array<string> }) {
       session.set("count", data.count);
       session.set("type", data.type);
       session.set("ids", data.ids);

@@ -1,73 +1,84 @@
-import {
-  DataFunctionArgs,
-  json,
-  MetaFunction,
-  redirect,
-} from "@remix-run/node";
-import { Form, useLoaderData } from "@remix-run/react";
+import type { DataFunctionArgs, V2_MetaFunction } from "@remix-run/node";
+import { json } from "@remix-run/node";
+import { redirect } from "@remix-run/node";
+import { Form, useActionData, useLoaderData } from "@remix-run/react";
 import { copyToClipboard } from "copy-lite";
-import { getSession } from "~/session.server";
-import { generateIds, IdType, idTypes } from "~/generate.server";
+import { z } from "zod";
+import { zfd } from "zod-form-data";
 
-export let meta: MetaFunction = () => {
-  return { title: "ID Generator" };
+import { getSession } from "~/session.server";
+import { generateIds, idTypes } from "~/generate.server";
+
+export let meta: V2_MetaFunction = () => {
+  return [{ title: "ID Generator" }];
 };
 
 export async function loader({ request }: DataFunctionArgs) {
   let session = await getSession(request);
-  return json({ ...session.get(), idTypes });
+  let { count, ids, type } = session.get();
+  return json({ count, ids, type, idTypes });
 }
+
+let schema = zfd.formData({
+  count: zfd.numeric(z.number().int().min(1).max(100)),
+  type: zfd.text(z.enum(idTypes)),
+});
 
 export async function action({ request }: DataFunctionArgs) {
   let session = await getSession(request);
   let formData = await request.formData();
 
-  let rawCount = formData.get("count");
-  let count = rawCount ? Number(formData.get("count")) : undefined;
-  let type = formData.get("type") as IdType;
+  let result = schema.safeParse(formData);
 
-  if (!type || !count) {
-    return redirect("/");
+  if (!result.success) {
+    return json({ errors: result.error.formErrors.fieldErrors });
   }
 
+  let ids = generateIds(result.data.type, result.data.count);
+
   session.set({
-    type,
-    count,
-    ids: generateIds(type, count),
+    type: result.data.type,
+    count: result.data.count,
+    ids,
   });
 
-  return redirect("/", {
-    headers: { "Set-Cookie": await session.save() },
-  });
+  return redirect("/", { headers: { "Set-Cookie": await session.save() } });
 }
 
 export default function IndexPage() {
-  let { ids, count, type, idTypes } = useLoaderData<typeof loader>();
+  let data = useLoaderData<typeof loader>();
+  let actionData = useActionData<typeof action>();
 
   return (
-    <main className="flex flex-col min-h-screen">
-      <div className="flex-auto w-full max-w-screen-sm p-4 mx-auto mt-2 md:flex-none">
+    <main className="flex min-h-screen flex-col">
+      <div className="mx-auto mt-2 w-full max-w-screen-sm flex-auto p-4 md:flex-none">
         <h1 className="text-4xl">ID Generator</h1>
-        {ids.length > 0 ? (
+        {data.ids.length > 0 ? (
           <>
-            <p className="block text-xl">Here are your generated {type}s</p>
+            <p className="block text-xl">
+              Here are your generated {data.type}s
+            </p>
             <div className="mt-2 space-y-2">
-              {ids.map((id, index) => (
+              {data.ids?.map((id, index) => (
                 <input
                   key={id}
                   type="text"
-                  className="w-full p-2 border rounded-md border-zinc-400"
+                  className="w-full rounded-md border border-zinc-400 p-2"
                   readOnly
                   value={id}
-                  aria-label={`generated ${type} id ${index + 1}`}
+                  aria-label={`generated ${data.type} id ${index + 1}`}
                 />
               ))}
 
-              <div className="grid grid-cols-2 sm:flex gap-4 sm:gap-0 sm:space-x-4">
+              <div className="grid grid-cols-2 gap-4 sm:flex sm:gap-0 sm:space-x-4">
                 <button
                   type="button"
-                  className="w-full px-4 py-2 text-white bg-indigo-500 rounded-md md:w-auto"
-                  onClick={() => copyToClipboard(ids.join("\n"))}
+                  className="w-full rounded-md bg-indigo-500 px-4 py-2 text-white md:w-auto"
+                  onClick={() => {
+                    if (data.ids.length > 0) {
+                      copyToClipboard(data.ids.join("\n"));
+                    }
+                  }}
                 >
                   Copy
                 </button>
@@ -82,7 +93,7 @@ export default function IndexPage() {
                     type="submit"
                     name="download"
                     value="true"
-                    className="w-full px-4 py-2 text-white bg-indigo-500 rounded-md md:w-auto"
+                    className="w-full rounded-md bg-indigo-500 px-4 py-2 text-white md:w-auto"
                   >
                     Download
                   </button>
@@ -95,22 +106,29 @@ export default function IndexPage() {
 
       <Form
         replace
-        className="w-full max-w-screen-sm p-4 py-4 mx-auto space-y-2 bg-gray-100 rounded"
+        className="mx-auto w-full max-w-screen-sm space-y-2 rounded bg-gray-100 p-4 py-4"
         method="post"
       >
         <label className="block text-xl">
           <span>What type of ID do you want to generate?</span>
           <select
             name="type"
-            className="block w-full py-2 pl-3 pr-10 mt-1 text-base border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            defaultValue={type}
+            className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+            defaultValue={data.type}
+            aria-invalid={actionData?.errors.type ? "true" : "false"}
+            aria-errormessage={
+              actionData?.errors.type ? "type-errors" : undefined
+            }
           >
-            {idTypes.map((type) => (
+            {data.idTypes.map((type) => (
               <option key={type} value={type}>
                 {type}
               </option>
             ))}
           </select>
+          {actionData?.errors.type ? (
+            <ErrorMessages id={type} errors={actionData.errors.type} />
+          ) : null}
         </label>
         <label className="block text-xl">
           <span>How many do you want?</span>
@@ -118,17 +136,34 @@ export default function IndexPage() {
             type="text"
             inputMode="numeric"
             name="count"
-            defaultValue={count ?? 1}
-            className="block w-full py-2 pl-3 pr-10 mt-1 text-base border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            defaultValue={data.count ?? 1}
+            className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+            aria-invalid={actionData?.errors.type ? "true" : "false"}
+            aria-errormessage={
+              actionData?.errors.type ? "type-errors" : undefined
+            }
           />
+          {actionData?.errors.count ? (
+            <ErrorMessages id="count" errors={actionData.errors.count} />
+          ) : null}
         </label>
         <button
-          className="w-full px-4 py-2 text-white bg-indigo-500 rounded-md md:w-auto"
+          className="w-full rounded-md bg-indigo-500 px-4 py-2 text-white md:w-auto"
           type="submit"
         >
-          {ids.length > 0 ? "Generate Again" : "Generate"}
+          {data.ids.length > 0 ? "Generate Again" : "Generate"}
         </button>
       </Form>
     </main>
+  );
+}
+
+function ErrorMessages({ errors, id }: { id: string; errors: string[] }) {
+  return (
+    <ul id={`${id}-errors`} className="text-red-500 text-sm p-2">
+      {errors.map((error) => (
+        <li key={error}>{error}</li>
+      ))}
+    </ul>
   );
 }

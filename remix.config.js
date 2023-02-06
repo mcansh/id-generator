@@ -8,4 +8,8 @@ module.exports = {
   serverBuildDirectory: "api/_build",
   ignoredRouteFiles: [".*"],
   serverDependenciesToBundle: ["nanoid"],
+  future: {
+    v2_meta: true,
+    // v2_routeConvention: true,
+  },
 };

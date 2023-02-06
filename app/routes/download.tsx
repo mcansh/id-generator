@@ -1,4 +1,5 @@
 import type { DataFunctionArgs } from "@remix-run/node";
+
 import { getSession } from "~/session.server";
 
 export async function action({ request }: DataFunctionArgs) {

@@ -8,7 +8,7 @@ let hyperid = createHyperIdInstance();
 
 export let idTypes = ["cuid", "cuid2", "uuid", "nanoid", "hyperid"] as const;
 
-export type IdType = typeof idTypes[number];
+export type IdType = (typeof idTypes)[number];
 
 function makeArray(length: number) {
   return [...Array.from({ length })];
