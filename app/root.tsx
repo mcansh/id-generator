@@ -1,4 +1,4 @@
-import type { LinksFunction } from "@remix-run/node";
+import type { LinksFunction } from "@vercel/remix";
 import {
   Links,
   LiveReload,
@@ -7,6 +7,7 @@ import {
   Scripts,
   ScrollRestoration,
 } from "@remix-run/react";
+import appStylesHref from "tailwindcss/tailwind.css";
 
 import appStylesHref from "./styles/app.css";
 

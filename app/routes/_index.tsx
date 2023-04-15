@@ -1,6 +1,7 @@
-import type { DataFunctionArgs, V2_MetaFunction } from "@remix-run/node";
-import { json } from "@remix-run/node";
-import { redirect } from "@remix-run/node";
+import type { DataFunctionArgs } from "@vercel/remix";
+import { json } from "@vercel/remix";
+import { redirect } from "@vercel/remix";
+import type { V2_MetaFunction } from "@remix-run/react";
 import { Form, useActionData, useLoaderData } from "@remix-run/react";
 import { copyToClipboard } from "copy-lite";
 import { z } from "zod";
@@ -24,6 +25,8 @@ let schema = zfd.formData({
   type: zfd.text(z.enum(idTypes)),
 });
 
+type Schema = z.infer<typeof schema>;
+
 export async function action({ request }: DataFunctionArgs) {
   let session = await getSession(request);
   let formData = await request.formData();
@@ -31,7 +34,16 @@ export async function action({ request }: DataFunctionArgs) {
   let result = schema.safeParse(formData);
 
   if (!result.success) {
-    return json({ errors: result.error.formErrors.fieldErrors });
+    let errors = result.error.errors.reduce<Record<keyof Schema, string[]>>(
+      (acc, error) => {
+        let field = String(error.path[0]) as keyof Schema;
+        acc[field] = acc[field] || [];
+        acc[field].push(error.message);
+        return acc;
+      },
+      {} as Record<keyof Schema, string[]>
+    );
+    return json({ errors }, { status: 422 });
   }
 
   let ids = generateIds(result.data.type, result.data.count);
@@ -115,7 +127,11 @@ export default function IndexPage() {
             name="type"
             className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
             defaultValue={data.type}
-            aria-invalid={actionData?.errors.type ? "true" : "false"}
+            aria-invalid={
+              actionData && "errors" in actionData && actionData.errors.type
+                ? "true"
+                : undefined
+            }
             aria-errormessage={
               actionData?.errors.type ? "type-errors" : undefined
             }
@@ -127,7 +143,7 @@ export default function IndexPage() {
             ))}
           </select>
           {actionData?.errors.type ? (
-            <ErrorMessages id={type} errors={actionData.errors.type} />
+            <ErrorMessages id="type" errors={actionData.errors.type} />
           ) : null}
         </label>
         <label className="block text-xl">
