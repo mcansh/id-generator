@@ -9,7 +9,7 @@ import {
 } from "@remix-run/react";
 import appStylesHref from "tailwindcss/tailwind.css";
 
-import appStylesHref from "./styles/app.css";
+export let config = { runtime: "edge" };
 
 export let links: LinksFunction = () => {
   return [
