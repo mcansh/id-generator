@@ -41,7 +41,7 @@ export async function action({ request }: DataFunctionArgs) {
         acc[field].push(error.message);
         return acc;
       },
-      {} as Record<keyof Schema, string[]>
+      {} as Record<keyof Schema, string[]>,
     );
     return json({ errors }, { status: 422 });
   }

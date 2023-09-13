@@ -1,12 +1,13 @@
 import { createCookieSessionStorage } from "@remix-run/node";
-import invariant from "tiny-invariant";
 import { createTypedSessionStorage } from "remix-utils";
 import { z } from "zod";
 
 import type { DeprecatedIdType, IdType } from "./generate.server";
 import { idTypes, deprecatedIdTypes } from "./generate.server";
 
-invariant(process.env.SESSION_SECRET, "SESSION_SECRET must be set");
+if (!process.env.SESSION_SECRET) {
+  throw new Error("SESSION_SECRET must be set");
+}
 
 let schema = z.object({
   count: z.number().default(1),
@@ -48,7 +49,7 @@ export async function getSession(request: Request) {
       session.set("ids", data.ids);
     },
     save() {
-      return sessionStorage.commitSession(session);
+      return typedSessionStorage.commitSession(session);
     },
   };
 }

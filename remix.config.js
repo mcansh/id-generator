@@ -1,6 +1,4 @@
-/**
- * @type {import('@remix-run/dev').AppConfig}
- */
+/** @type {import('@remix-run/dev').AppConfig} */
 module.exports = {
   appDirectory: "app",
   assetsBuildDirectory: "public/build",
@@ -8,10 +6,13 @@ module.exports = {
   serverBuildPath: "build/index.js",
   ignoredRouteFiles: [".*"],
   serverDependenciesToBundle: ["nanoid"],
+  serverModuleFormat: "cjs",
+  postcss: true,
+  tailwind: true,
   future: {
-    unstable_postcss: true,
-    unstable_tailwind: true,
+    v2_dev: true,
     v2_errorBoundary: true,
+    v2_headers: true,
     v2_meta: true,
     v2_normalizeFormMethod: true,
     v2_routeConvention: true,
