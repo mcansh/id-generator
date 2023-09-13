@@ -4,7 +4,6 @@ import type { V2_MetaFunction } from "@remix-run/react";
 import { Form, useActionData, useLoaderData } from "@remix-run/react";
 import { copyToClipboard } from "copy-lite";
 import { z } from "zod";
-import { zfd } from "zod-form-data";
 
 import { getSession } from "~/session.server";
 import { generateIds, idTypes } from "~/generate.server";
@@ -19,18 +18,43 @@ export async function loader({ request }: DataFunctionArgs) {
   return json({ count, ids, type, idTypes });
 }
 
-let schema = zfd.formData({
-  count: zfd.numeric(z.number().int().min(1).max(100)),
-  type: zfd.text(z.enum(idTypes)),
-});
+let schema = z
+  .object({
+    type: z.enum(idTypes),
+    count: z.coerce.number().int().min(1),
+  })
+  .superRefine((data, ctx) => {
+    if (data.type === "uuid" && data.count > 75) {
+      ctx.addIssue({
+        path: ["count"],
+        code: z.ZodIssueCode.too_big,
+        maximum: 75,
+        type: "number",
+        inclusive: true,
+        message: "you can only generate up to 75 uuids at a time",
+      });
+      return z.NEVER;
+    }
+
+    if (data.count > 100) {
+      ctx.addIssue({
+        path: ["count"],
+        code: z.ZodIssueCode.too_big,
+        maximum: 100,
+        type: "number",
+        inclusive: true,
+        message: `you can only generate up to 100 ${data.type}s at a time`,
+      });
+      return z.NEVER;
+    }
+  });
 
 type Schema = z.infer<typeof schema>;
 
 export async function action({ request }: DataFunctionArgs) {
   let session = await getSession(request);
   let formData = await request.formData();
-
-  let result = schema.safeParse(formData);
+  let result = schema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!result.success) {
     let errors = result.error.errors.reduce<Record<keyof Schema, string[]>>(
