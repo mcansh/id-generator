@@ -1,4 +1,4 @@
-import { createCookieSessionStorage } from "@remix-run/node";
+import { createCookieSessionStorage } from "@vercel/remix";
 import { createTypedSessionStorage } from "remix-utils";
 import { z } from "zod";
 

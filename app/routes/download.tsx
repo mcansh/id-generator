@@ -1,4 +1,4 @@
-import type { DataFunctionArgs } from "@remix-run/node";
+import type { DataFunctionArgs } from "@vercel/remix";
 
 import { getSession } from "~/session.server";
 
