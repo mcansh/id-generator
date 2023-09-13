@@ -1,6 +1,5 @@
 import type { DataFunctionArgs } from "@vercel/remix";
-import { json } from "@vercel/remix";
-import { redirect } from "@vercel/remix";
+import { json, redirect } from "@vercel/remix";
 import type { V2_MetaFunction } from "@remix-run/react";
 import { Form, useActionData, useLoaderData } from "@remix-run/react";
 import { copyToClipboard } from "copy-lite";
@@ -41,7 +40,7 @@ export async function action({ request }: DataFunctionArgs) {
         acc[field].push(error.message);
         return acc;
       },
-      {} as Record<keyof Schema, string[]>,
+      {} as Record<keyof Schema, string[]>
     );
     return json({ errors }, { status: 422 });
   }

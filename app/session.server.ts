@@ -2,7 +2,7 @@ import { createCookieSessionStorage } from "@vercel/remix";
 import { createTypedSessionStorage } from "remix-utils";
 import { z } from "zod";
 
-import type { DeprecatedIdType, IdType } from "./generate.server";
+import type { DeprecatedIdType } from "./generate.server";
 import { idTypes, deprecatedIdTypes } from "./generate.server";
 
 if (!process.env.SESSION_SECRET) {
@@ -14,6 +14,8 @@ let schema = z.object({
   type: z.enum([...idTypes, ...deprecatedIdTypes]).default("cuid"),
   ids: z.array(z.string()).default([]),
 });
+
+type SessionData = z.infer<typeof schema>;
 
 const sessionStorage = createCookieSessionStorage({
   cookie: {
@@ -33,7 +35,7 @@ export async function getSession(request: Request) {
   let session = await typedSessionStorage.getSession(cookie);
 
   return {
-    get() {
+    get(): SessionData {
       let count = session.get("count") ?? 1;
       let ids = session.get("ids") ?? [];
       let type = session.get("type") ?? "cuid";
@@ -42,7 +44,7 @@ export async function getSession(request: Request) {
       }
       return { count, type, ids };
     },
-    set(data: { count: number; type: IdType; ids: Array<string> }) {
+    set(data: SessionData) {
       session.set("count", data.count);
       session.set("type", data.type);
       session.set("ids", data.ids);
