@@ -14,40 +14,43 @@ export let meta: V2_MetaFunction = () => {
 
 export async function loader({ request }: DataFunctionArgs) {
   let session = await getSession(request);
-  let { count, ids, type } = session.get();
-  return json({ count, ids, type, idTypes });
+  let { count, ids, type, prefix } = session.get();
+  return json({ count, ids, type, idTypes, prefix });
 }
 
-let schema = z
-  .object({
-    type: z.enum(idTypes),
-    count: z.coerce.number().int().min(1),
-  })
-  .superRefine((data, ctx) => {
-    if (data.type === "uuid" && data.count > 75) {
-      ctx.addIssue({
-        path: ["count"],
-        code: z.ZodIssueCode.too_big,
-        maximum: 75,
-        type: "number",
-        inclusive: true,
-        message: "you can only generate up to 75 uuids at a time",
-      });
-      return z.NEVER;
-    }
-
-    if (data.count > 100) {
-      ctx.addIssue({
-        path: ["count"],
-        code: z.ZodIssueCode.too_big,
-        maximum: 100,
-        type: "number",
-        inclusive: true,
-        message: `you can only generate up to 100 ${data.type}s at a time`,
-      });
-      return z.NEVER;
-    }
-  });
+let schema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("uuid"),
+    count: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(75, "you can only generate up to 75 uuids at a time"),
+  }),
+  z.object({
+    type: z.literal("nanoid"),
+    count: z.coerce.number().int().min(1).max(100, {
+      message: "you can only generate up to 100 nanoids at a time",
+    }),
+  }),
+  z.object({
+    type: z.literal("hyperid"),
+    count: z.coerce.number().int().min(1).max(100, {
+      message: "you can only generate up to 100 hyperids at a time",
+    }),
+  }),
+  z.object({
+    type: z.literal("cuid"),
+    count: z.coerce.number().int().min(1).max(100, {
+      message: "you can only generate up to 100 cuids at a time",
+    }),
+  }),
+  z.object({
+    type: z.literal("typeid"),
+    count: z.coerce.number().int().min(1).max(50),
+    prefix: z.string().optional(),
+  }),
+]);
 
 type Schema = z.infer<typeof schema>;
 
@@ -69,11 +72,13 @@ export async function action({ request }: DataFunctionArgs) {
     return json({ errors }, { status: 422 });
   }
 
-  let ids = generateIds(result.data.type, result.data.count);
+  let prefix = result.data.type === "typeid" ? result.data.prefix : undefined;
+  let ids = generateIds(result.data.type, result.data.count, prefix);
 
   session.set({
     type: result.data.type,
     count: result.data.count,
+    prefix,
     ids,
   });
 
@@ -185,6 +190,15 @@ export default function IndexPage() {
           {actionData?.errors.count ? (
             <ErrorMessages id="count" errors={actionData.errors.count} />
           ) : null}
+        </label>
+        <label className="block text-xl">
+          <span>Prefix (only for typeids)</span>
+          <input
+            type="text"
+            name="prefix"
+            defaultValue={data.prefix}
+            className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+          />
         </label>
         <button
           className="w-full rounded-md bg-indigo-500 px-4 py-2 text-white md:w-auto"

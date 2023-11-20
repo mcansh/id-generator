@@ -21,6 +21,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "remix-utils": "^6.6.0",
+    "typeid-js": "^0.3.0",
     "zod": "^3.22.2"
   },
   "devDependencies": {

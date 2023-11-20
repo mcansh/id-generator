@@ -13,6 +13,7 @@ let schema = z.object({
   count: z.number().default(1),
   type: z.enum([...idTypes, ...deprecatedIdTypes]).default("cuid"),
   ids: z.array(z.string()).default([]),
+  prefix: z.string().optional(),
 });
 
 type SessionData = z.infer<typeof schema>;
@@ -39,15 +40,17 @@ export async function getSession(request: Request) {
       let count = session.get("count") ?? 1;
       let ids = session.get("ids") ?? [];
       let type = session.get("type") ?? "cuid";
+      let prefix = session.get("prefix") ?? undefined;
       if (deprecatedIdTypes.includes(type as DeprecatedIdType)) {
         type = "cuid";
       }
-      return { count, type, ids };
+      return { count, type, ids, prefix };
     },
     set(data: SessionData) {
       session.set("count", data.count);
       session.set("type", data.type);
       session.set("ids", data.ids);
+      session.set("prefix", data.prefix);
     },
     save() {
       return typedSessionStorage.commitSession(session);
