@@ -4,6 +4,7 @@ import type { V2_MetaFunction } from "@remix-run/react";
 import { Form, useActionData, useLoaderData } from "@remix-run/react";
 import { copyToClipboard } from "copy-lite";
 import { z } from "zod";
+import * as React from "react";
 
 import { getSession } from "~/session.server";
 import { generateIds, idTypes } from "~/generate.server";
@@ -88,6 +89,9 @@ export async function action({ request }: DataFunctionArgs) {
 export default function IndexPage() {
   let data = useLoaderData<typeof loader>();
   let actionData = useActionData<typeof action>();
+  let [showPrefixField, setShowPrefixField] = React.useState(() => {
+    return data.type === "typeid";
+  });
 
   return (
     <main className="flex min-h-screen flex-col">
@@ -99,7 +103,7 @@ export default function IndexPage() {
               Here are your generated {data.type}s
             </p>
             <div className="mt-2 space-y-2">
-              {data.ids?.map((id, index) => (
+              {data.ids.map((id, index) => (
                 <input
                   key={id}
                   type="text"
@@ -148,6 +152,12 @@ export default function IndexPage() {
         replace
         className="mx-auto w-full max-w-screen-sm space-y-2 rounded bg-gray-100 p-4 py-4"
         method="post"
+        onChange={(event) => {
+          let type = event.currentTarget.elements.namedItem("type");
+          if (type instanceof HTMLSelectElement) {
+            setShowPrefixField(type.value === "typeid");
+          }
+        }}
       >
         <label className="block text-xl">
           <span>What type of ID do you want to generate?</span>
@@ -155,14 +165,7 @@ export default function IndexPage() {
             name="type"
             className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
             defaultValue={data.type}
-            aria-invalid={
-              actionData && "errors" in actionData && actionData.errors.type
-                ? "true"
-                : undefined
-            }
-            aria-errormessage={
-              actionData?.errors.type ? "type-errors" : undefined
-            }
+            {...getErrorAria("type", actionData?.errors.type)}
           >
             {data.idTypes.map((type) => (
               <option key={type} value={type}>
@@ -182,24 +185,23 @@ export default function IndexPage() {
             name="count"
             defaultValue={data.count ?? 1}
             className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-            aria-invalid={actionData?.errors.type ? "true" : "false"}
-            aria-errormessage={
-              actionData?.errors.type ? "type-errors" : undefined
-            }
+            {...getErrorAria("count", actionData?.errors.count)}
           />
           {actionData?.errors.count ? (
             <ErrorMessages id="count" errors={actionData.errors.count} />
           ) : null}
         </label>
-        <label className="block text-xl">
-          <span>Prefix (only for typeids)</span>
-          <input
-            type="text"
-            name="prefix"
-            defaultValue={data.prefix}
-            className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-          />
-        </label>
+        {showPrefixField ? (
+          <label className="block text-xl">
+            <span>Prefix (optional, only for typeids)</span>
+            <input
+              type="text"
+              name="prefix"
+              defaultValue={data.prefix}
+              className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+            />
+          </label>
+        ) : null}
         <button
           className="w-full rounded-md bg-indigo-500 px-4 py-2 text-white md:w-auto"
           type="submit"
@@ -211,12 +213,24 @@ export default function IndexPage() {
   );
 }
 
-function ErrorMessages({ errors, id }: { id: string; errors: string[] }) {
+function ErrorMessages({ errors, id }: { id: keyof Schema; errors: string[] }) {
   return (
-    <ul id={`${id}-errors`} className="text-red-500 text-sm p-2">
+    <ul id={getErrorId(id)} className="text-red-500 text-sm p-2">
       {errors.map((error) => (
         <li key={error}>{error}</li>
       ))}
     </ul>
   );
+}
+
+function getErrorId(id: string) {
+  return `${id}-errors`;
+}
+
+function getErrorAria(key: keyof Schema, errors: string[] | undefined) {
+  let hasErrors = errors && errors.length > 0;
+  return {
+    "aria-errormessage": hasErrors ? getErrorId(key) : undefined,
+    "aria-invalid": hasErrors ? "true" : undefined,
+  } as const;
 }
