@@ -1,13 +1,12 @@
 import type { LinksFunction } from "@vercel/remix";
 import {
   Links,
-  LiveReload,
   Meta,
   Outlet,
   Scripts,
   ScrollRestoration,
 } from "@remix-run/react";
-import appStylesHref from "tailwindcss/tailwind.css";
+import appStylesHref from "tailwindcss/tailwind.css?url";
 
 export let config = { runtime: "edge" };
 
@@ -18,7 +17,7 @@ export let links: LinksFunction = () => {
   ];
 };
 
-export default function App() {
+export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
@@ -28,11 +27,14 @@ export default function App() {
         <Links />
       </head>
       <body>
-        <Outlet />
+        {children}
         <ScrollRestoration />
         <Scripts />
-        {process.env.NODE_ENV === "development" && <LiveReload />}
       </body>
     </html>
   );
+}
+
+export default function App() {
+  return <Outlet />;
 }

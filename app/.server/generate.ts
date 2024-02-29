@@ -2,14 +2,13 @@ import { v4 as uuid } from "@lukeed/uuid";
 import { nanoid } from "nanoid";
 import { createId as cuid } from "@paralleldrive/cuid2";
 import createHyperIdInstance from "hyperid";
+import { z } from "zod";
 
 let hyperid = createHyperIdInstance();
 
-export let idTypes = ["cuid", "uuid", "nanoid", "hyperid"] as const;
-export let deprecatedIdTypes = ["cuid2"] as const;
+export let idTypes = ["cuid", "nanoid", "uuid", "hyperid"] as const;
 
 export type IdType = (typeof idTypes)[number];
-export type DeprecatedIdType = (typeof deprecatedIdTypes)[number];
 
 function makeArray(length: number) {
   return [...Array.from({ length })];
@@ -34,3 +33,12 @@ export function generateIds(type: IdType, count: number) {
     }
   }
 }
+
+export let schema = z.object({
+  type: z.enum(idTypes),
+  count: z.coerce.number().int().min(1).max(50, {
+    message: "you can only generate up to 50 ids at a time",
+  }),
+});
+
+export type Schema = z.infer<typeof schema>;

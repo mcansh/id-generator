@@ -1,21 +1,22 @@
 import { createCookieSessionStorage } from "@vercel/remix";
-import { createTypedSessionStorage } from "remix-utils";
+import { createTypedSessionStorage } from "remix-utils/typed-session";
 import { z } from "zod";
 
-import type { DeprecatedIdType } from "./generate.server";
-import { idTypes, deprecatedIdTypes } from "./generate.server";
+
+import { idTypes } from "./generate";
 
 if (!process.env.SESSION_SECRET) {
   throw new Error("SESSION_SECRET must be set");
 }
 
-let schema = z.object({
+let sessionSchema = z.object({
   count: z.number().default(1),
-  type: z.enum([...idTypes, ...deprecatedIdTypes]).default("cuid"),
+  type: z.enum(idTypes).default("cuid"),
   ids: z.array(z.string()).default([]),
+  errors: z.record(z.enum(["type", "count"]), z.array(z.string())).default({}),
 });
 
-type SessionData = z.infer<typeof schema>;
+type SessionData = z.infer<typeof sessionSchema>;
 
 const sessionStorage = createCookieSessionStorage({
   cookie: {
@@ -28,7 +29,10 @@ const sessionStorage = createCookieSessionStorage({
   },
 });
 
-let typedSessionStorage = createTypedSessionStorage({ sessionStorage, schema });
+let typedSessionStorage = createTypedSessionStorage({
+  sessionStorage,
+  schema: sessionSchema,
+});
 
 export async function getSession(request: Request) {
   let cookie = request.headers.get("Cookie");
@@ -39,17 +43,17 @@ export async function getSession(request: Request) {
       let count = session.get("count") ?? 1;
       let ids = session.get("ids") ?? [];
       let type = session.get("type") ?? "cuid";
-      if (deprecatedIdTypes.includes(type as DeprecatedIdType)) {
-        type = "cuid";
-      }
-      return { count, type, ids };
+      let errors = session.get("errors") ?? {};
+      return { count, errors, ids, type };
     },
-    set(data: SessionData) {
+    set(data: Omit<SessionData, 'errors'> | SessionData) {
       session.set("count", data.count);
       session.set("type", data.type);
       session.set("ids", data.ids);
+      if ("errors" in data) session.set("errors", data.errors);
     },
     save() {
+      console.log(session.data);
       return typedSessionStorage.commitSession(session);
     },
   };

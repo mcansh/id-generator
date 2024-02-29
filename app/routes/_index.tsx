@@ -1,88 +1,59 @@
-import type { DataFunctionArgs } from "@vercel/remix";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "@vercel/remix";
 import { json, redirect } from "@vercel/remix";
-import type { V2_MetaFunction } from "@remix-run/react";
-import { Form, useActionData, useLoaderData } from "@remix-run/react";
+import type { MetaFunction } from "@remix-run/react";
+import { Form, useLoaderData } from "@remix-run/react";
 import { copyToClipboard } from "copy-lite";
-import { z } from "zod";
 
-import { getSession } from "~/session.server";
-import { generateIds, idTypes } from "~/generate.server";
+import { getSession } from "~/.server/session";
+import type { IdType } from "~/.server/generate";
+import { generateIds, idTypes, schema } from "~/.server/generate";
 
-export let meta: V2_MetaFunction = () => {
+export let meta: MetaFunction = () => {
   return [{ title: "ID Generator" }];
 };
 
-export async function loader({ request }: DataFunctionArgs) {
+export async function loader({ request }: LoaderFunctionArgs) {
   let session = await getSession(request);
-  let { count, ids, type } = session.get();
-  return json({ count, ids, type, idTypes });
+  let result = session.get();
+
+  return json(
+    { ...result, idTypes },
+    { headers: { "Set-Cookie": await session.save() } },
+  );
 }
 
-let schema = z
-  .object({
-    type: z.enum(idTypes),
-    count: z.coerce.number().int().min(1),
-  })
-  .superRefine((data, ctx) => {
-    if (data.type === "uuid" && data.count > 75) {
-      ctx.addIssue({
-        path: ["count"],
-        code: z.ZodIssueCode.too_big,
-        maximum: 75,
-        type: "number",
-        inclusive: true,
-        message: "you can only generate up to 75 uuids at a time",
-      });
-      return z.NEVER;
-    }
-
-    if (data.count > 100) {
-      ctx.addIssue({
-        path: ["count"],
-        code: z.ZodIssueCode.too_big,
-        maximum: 100,
-        type: "number",
-        inclusive: true,
-        message: `you can only generate up to 100 ${data.type}s at a time`,
-      });
-      return z.NEVER;
-    }
-  });
-
-type Schema = z.infer<typeof schema>;
-
-export async function action({ request }: DataFunctionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
   let session = await getSession(request);
   let formData = await request.formData();
+  let type = formData.get("type");
+  let count = formData.get("count");
+
   let result = schema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!result.success) {
-    let errors = result.error.errors.reduce<Record<keyof Schema, string[]>>(
-      (acc, error) => {
-        let field = String(error.path[0]) as keyof Schema;
-        acc[field] = acc[field] || [];
-        acc[field].push(error.message);
-        return acc;
-      },
-      {} as Record<keyof Schema, string[]>
-    );
-    return json({ errors }, { status: 422 });
+    let errors = result.error.formErrors.fieldErrors;
+    console.log(errors);
+    let typedType: IdType = "cuid";
+    if (type && typeof type === "string" && idTypes.includes(type as any)) {
+      typedType = type as any;
+    }
+    let typedCount = 1;
+    if (count && typeof count === "string") {
+      let maybe = parseInt(count, 10);
+      if (maybe && maybe > 0) typedCount = maybe;
+    }
+
+    session.set({ count: typedCount, ids: [], type: typedType, errors });
+    return redirect("/", { headers: { "Set-Cookie": await session.save() } });
   }
 
   let ids = generateIds(result.data.type, result.data.count);
-
-  session.set({
-    type: result.data.type,
-    count: result.data.count,
-    ids,
-  });
-
+  session.set({ type: result.data.type, count: result.data.count, ids, });
   return redirect("/", { headers: { "Set-Cookie": await session.save() } });
 }
 
 export default function IndexPage() {
   let data = useLoaderData<typeof loader>();
-  let actionData = useActionData<typeof action>();
 
   return (
     <main className="flex min-h-screen flex-col">
@@ -150,14 +121,7 @@ export default function IndexPage() {
             name="type"
             className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
             defaultValue={data.type}
-            aria-invalid={
-              actionData && "errors" in actionData && actionData.errors.type
-                ? "true"
-                : undefined
-            }
-            aria-errormessage={
-              actionData?.errors.type ? "type-errors" : undefined
-            }
+            {...getAria("type", data.errors.type)}
           >
             {data.idTypes.map((type) => (
               <option key={type} value={type}>
@@ -165,8 +129,8 @@ export default function IndexPage() {
               </option>
             ))}
           </select>
-          {actionData?.errors.type ? (
-            <ErrorMessages id="type" errors={actionData.errors.type} />
+          {data.errors.type && data.errors.type.length > 0 ? (
+            <ErrorMessages id="type" errors={data.errors.type} />
           ) : null}
         </label>
         <label className="block text-xl">
@@ -177,13 +141,10 @@ export default function IndexPage() {
             name="count"
             defaultValue={data.count ?? 1}
             className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-            aria-invalid={actionData?.errors.type ? "true" : "false"}
-            aria-errormessage={
-              actionData?.errors.type ? "type-errors" : undefined
-            }
+            {...getAria("count", data.errors.count)}
           />
-          {actionData?.errors.count ? (
-            <ErrorMessages id="count" errors={actionData.errors.count} />
+          {data.errors.count && data.errors.count.length > 0 ? (
+            <ErrorMessages id="count" errors={data.errors.count} />
           ) : null}
         </label>
         <button
@@ -205,4 +166,12 @@ function ErrorMessages({ errors, id }: { id: string; errors: string[] }) {
       ))}
     </ul>
   );
+}
+
+function getAria(id: string, errors: string[] = []) {
+  let hasErrors = errors.length > 0;
+  return {
+    "aria-invalid": hasErrors ? "true" : undefined,
+    "aria-errormessage": hasErrors ? `${id}-errors` : undefined,
+  } as const;
 }

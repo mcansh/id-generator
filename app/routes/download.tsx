@@ -1,8 +1,7 @@
-import type { DataFunctionArgs } from "@vercel/remix";
+import { ActionFunctionArgs } from "@vercel/remix";
+import { getSession } from "~/.server/session";
 
-import { getSession } from "~/session.server";
-
-export async function action({ request }: DataFunctionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
   let session = await getSession(request);
   let { count, type, ids } = session.get();
 
