@@ -14,10 +14,10 @@ export let meta: MetaFunction = () => {
 export async function loader({ request }: LoaderFunctionArgs) {
   let url = new URL(request.url);
 
-  let type;
-  let count;
+  let type = url.searchParams.get("type");
+  let count = url.searchParams.get("count");
 
-  let result = schema.safeParse(Object.fromEntries(url.searchParams.entries()));
+  let result = schema.safeParse({ type, count });
 
   if (!result.success) {
     let errors = result.error.formErrors.fieldErrors;
