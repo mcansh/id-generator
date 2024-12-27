@@ -14,8 +14,8 @@ export let meta: MetaFunction = () => {
 export async function loader({ request }: LoaderFunctionArgs) {
   let url = new URL(request.url);
 
-  let type = url.searchParams.get("type");
-  let count = url.searchParams.get("count");
+  let type = url.searchParams.get("type") ?? "cuid";
+  let count = url.searchParams.get("count") ?? "10";
 
   let result = schema.safeParse({ type, count });
 
