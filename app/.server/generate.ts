@@ -35,9 +35,9 @@ export function generateIds(type: IdType, count: number) {
 }
 
 export let schema = z.object({
-  type: z.enum(idTypes),
-  count: z.coerce.number().int().min(1).max(50, {
-    message: "you can only generate up to 50 ids at a time",
+  type: z.enum(idTypes).optional().default("cuid",
+  count: z.coerce.number().int().min(1).max(100, {
+    message: "you can only generate up to 100 ids at a time",
   }),
 });
 
