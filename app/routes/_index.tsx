@@ -1,5 +1,5 @@
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "@vercel/remix";
-import { json, redirect } from "@vercel/remix";
+import type { LoaderFunctionArgs } from "@vercel/remix";
+import { json } from "@vercel/remix";
 import type { MetaFunction } from "@remix-run/react";
 import { Form, useLoaderData } from "@remix-run/react";
 import { copyToClipboard } from "copy-lite";
@@ -13,22 +13,12 @@ export let meta: MetaFunction = () => {
 };
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  let session = await getSession(request);
-  let result = session.get();
+  let url = new URL(request.url);
 
-  return json(
-    { ...result, idTypes },
-    { headers: { "Set-Cookie": await session.save() } },
-  );
-}
+  let type;
+  let count;
 
-export async function action({ request }: ActionFunctionArgs) {
-  let session = await getSession(request);
-  let formData = await request.formData();
-  let type = formData.get("type");
-  let count = formData.get("count");
-
-  let result = schema.safeParse(Object.fromEntries(formData.entries()));
+  let result = schema.safeParse(Object.fromEntries(url.searchParams.entries()));
 
   if (!result.success) {
     let errors = result.error.formErrors.fieldErrors;
@@ -42,14 +32,14 @@ export async function action({ request }: ActionFunctionArgs) {
       let maybe = parseInt(count, 10);
       if (maybe && maybe > 0) typedCount = maybe;
     }
-
-    session.set({ count: typedCount, ids: [], type: typedType, errors });
-    return redirect("/", { headers: { "Set-Cookie": await session.save() } });
   }
 
   let ids = generateIds(result.data.type, result.data.count);
-  session.set({ type: result.data.type, count: result.data.count, ids, });
-  return redirect("/", { headers: { "Set-Cookie": await session.save() } });
+
+  return json(
+    { ...result, ids, idTypes },
+    { headers: { "Set-Cookie": await session.save() } },
+  );
 }
 
 export default function IndexPage() {
