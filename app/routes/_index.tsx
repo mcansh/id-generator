@@ -4,7 +4,6 @@ import type { MetaFunction } from "@remix-run/react";
 import { Form, useLoaderData } from "@remix-run/react";
 import { copyToClipboard } from "copy-lite";
 
-import { getSession } from "~/.server/session";
 import type { IdType } from "~/.server/generate";
 import { generateIds, idTypes, schema } from "~/.server/generate";
 
@@ -36,10 +35,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   let ids = generateIds(result.data.type, result.data.count);
 
-  return json(
-    { ...result, ids, idTypes },
-    { headers: { "Set-Cookie": await session.save() } },
-  );
+  return json({ ...result, ids, idTypes });
 }
 
 export default function IndexPage() {
