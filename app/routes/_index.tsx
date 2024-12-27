@@ -22,15 +22,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   if (!result.success) {
     let errors = result.error.formErrors.fieldErrors;
     console.log(errors);
-    let typedType: IdType = "cuid";
-    if (type && typeof type === "string" && idTypes.includes(type as any)) {
-      typedType = type as any;
-    }
-    let typedCount = 1;
-    if (count && typeof count === "string") {
-      let maybe = parseInt(count, 10);
-      if (maybe && maybe > 0) typedCount = maybe;
-    }
+    throw new Response("something went wrong", { status: 500 });
   }
 
   let ids = generateIds(result.data.type, result.data.count);
