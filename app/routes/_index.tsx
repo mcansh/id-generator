@@ -135,7 +135,7 @@ function ErrorMessages({
 }) {
   if (errors.length === 0) return null;
   return (
-    <ul id={`${id}-errors`} className="text-red-500 text-sm p-2">
+    <ul id={`${id}-errors`} className="p-2 text-sm text-red-500">
       {errors.map((error) => (
         <li key={error}>{error}</li>
       ))}
