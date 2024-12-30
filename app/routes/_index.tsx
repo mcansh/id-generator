@@ -42,7 +42,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     ...result.data,
     ids,
     idTypes,
-    errors: { type: [], count: [] },
+    errors: { type: [] as string[], count: [] as string[] },
   });
 }
 
@@ -138,10 +138,10 @@ export default function IndexPage() {
 function ErrorMessages({
   errors,
   id,
-}: {
+}: Readonly<{
   id: string;
-  errors: string[] | null[];
-}) {
+  errors: string[];
+}>) {
   if (errors.length === 0) return null;
   return (
     <ul id={`${id}-errors`} className="p-2 text-sm text-red-500">
@@ -152,8 +152,10 @@ function ErrorMessages({
   );
 }
 
-function getAria(id: string, errors: string[] | null[] | undefined[] = []) {
-  let hasErrors = errors.length > 0;
+function getAria(id: string, errors: string[] = []) {
+  let hasErrors =
+    errors.filter((error): error is string => typeof error === "string")
+      .length > 0;
   return {
     "aria-invalid": hasErrors ? "true" : undefined,
     "aria-errormessage": hasErrors ? `${id}-errors` : undefined,
