@@ -88,7 +88,10 @@ export default function IndexPage() {
         ) : null}
       </div>
 
-      <Form className="mx-auto w-full max-w-screen-sm space-y-2 rounded bg-gray-100 p-4 py-4">
+      <Form
+        className="mx-auto w-full max-w-screen-sm space-y-2 rounded bg-gray-100 p-4 py-4"
+        replace
+      >
         <label className="block text-xl">
           <span>What type of ID do you want to generate?</span>
           <select
