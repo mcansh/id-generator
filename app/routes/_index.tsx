@@ -4,7 +4,6 @@ import type { MetaFunction } from "@remix-run/react";
 import { Form, useLoaderData } from "@remix-run/react";
 import { copyToClipboard } from "copy-lite";
 
-import type { IdType } from "~/.server/generate";
 import { generateIds, idTypes, schema } from "~/.server/generate";
 
 export let meta: MetaFunction = () => {
@@ -14,20 +13,31 @@ export let meta: MetaFunction = () => {
 export async function loader({ request }: LoaderFunctionArgs) {
   let url = new URL(request.url);
 
-  let type = url.searchParams.get("type") ?? "cuid";
-  let count = url.searchParams.get("count") ?? "10";
+  let type = url.searchParams.get("type");
+  let count = url.searchParams.get("count");
 
   let result = schema.safeParse({ type, count });
 
   if (!result.success) {
     let errors = result.error.formErrors.fieldErrors;
     console.log(errors);
-    throw new Response("something went wrong", { status: 500 });
+    return json({
+      errors,
+      idTypes,
+      ids: [] as string[],
+      type: null,
+      count: null,
+    });
   }
 
   let ids = generateIds(result.data.type, result.data.count);
 
-  return json({ ...result, ids, idTypes });
+  return json({
+    ...result.data,
+    ids,
+    idTypes,
+    errors: { type: [], count: [] },
+  });
 }
 
 export default function IndexPage() {
@@ -43,7 +53,7 @@ export default function IndexPage() {
               Here are your generated {data.type}s
             </p>
             <div className="mt-2 space-y-2">
-              {data.ids?.map((id, index) => (
+              {data.ids.map((id, index) => (
                 <input
                   key={id}
                   type="text"
@@ -66,39 +76,19 @@ export default function IndexPage() {
                 >
                   Copy
                 </button>
-
-                <Form
-                  reloadDocument
-                  method="post"
-                  action="/download"
-                  className="w-full"
-                >
-                  <button
-                    type="submit"
-                    name="download"
-                    value="true"
-                    className="w-full rounded-md bg-indigo-500 px-4 py-2 text-white md:w-auto"
-                  >
-                    Download
-                  </button>
-                </Form>
               </div>
             </div>
           </>
         ) : null}
       </div>
 
-      <Form
-        replace
-        className="mx-auto w-full max-w-screen-sm space-y-2 rounded bg-gray-100 p-4 py-4"
-        method="post"
-      >
+      <Form className="mx-auto w-full max-w-screen-sm space-y-2 rounded bg-gray-100 p-4 py-4">
         <label className="block text-xl">
           <span>What type of ID do you want to generate?</span>
           <select
             name="type"
             className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-            defaultValue={data.type}
+            defaultValue={data.type ?? "cuid"}
             {...getAria("type", data.errors.type)}
           >
             {data.idTypes.map((type) => (
@@ -107,7 +97,7 @@ export default function IndexPage() {
               </option>
             ))}
           </select>
-          {data.errors.type && data.errors.type.length > 0 ? (
+          {data.errors?.type && data.errors?.type.length > 0 ? (
             <ErrorMessages id="type" errors={data.errors.type} />
           ) : null}
         </label>
@@ -119,10 +109,10 @@ export default function IndexPage() {
             name="count"
             defaultValue={data.count ?? 1}
             className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-            {...getAria("count", data.errors.count)}
+            {...getAria("count", data.errors?.count)}
           />
-          {data.errors.count && data.errors.count.length > 0 ? (
-            <ErrorMessages id="count" errors={data.errors.count} />
+          {data.errors?.count && data.errors?.count.length > 0 ? (
+            <ErrorMessages id="count" errors={data.errors?.count} />
           ) : null}
         </label>
         <button
@@ -136,7 +126,14 @@ export default function IndexPage() {
   );
 }
 
-function ErrorMessages({ errors, id }: { id: string; errors: string[] }) {
+function ErrorMessages({
+  errors,
+  id,
+}: {
+  id: string;
+  errors: string[] | null[];
+}) {
+  if (errors.length === 0) return null;
   return (
     <ul id={`${id}-errors`} className="text-red-500 text-sm p-2">
       {errors.map((error) => (
@@ -146,7 +143,7 @@ function ErrorMessages({ errors, id }: { id: string; errors: string[] }) {
   );
 }
 
-function getAria(id: string, errors: string[] = []) {
+function getAria(id: string, errors: string[] | null[] | undefined[] = []) {
   let hasErrors = errors.length > 0;
   return {
     "aria-invalid": hasErrors ? "true" : undefined,
