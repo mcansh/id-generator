@@ -4,7 +4,13 @@ import type { MetaFunction } from "@remix-run/react";
 import { Form, useLoaderData } from "@remix-run/react";
 import { copyToClipboard } from "copy-lite";
 
-import { generateIds, idTypes, schema } from "~/.server/generate";
+import {
+  DEFAULT_ID_COUNT,
+  DEFAULT_ID_TYPE,
+  generateIds,
+  idTypes,
+  schema,
+} from "~/.server/generate";
 
 export let meta: MetaFunction = () => {
   return [{ title: "ID Generator" }];
@@ -13,8 +19,8 @@ export let meta: MetaFunction = () => {
 export async function loader({ request }: LoaderFunctionArgs) {
   let url = new URL(request.url);
 
-  let type = url.searchParams.get("type");
-  let count = url.searchParams.get("count");
+  let type = url.searchParams.get("type") ?? DEFAULT_ID_TYPE;
+  let count = url.searchParams.get("count") ?? DEFAULT_ID_COUNT;
 
   let result = schema.safeParse({ type, count });
 

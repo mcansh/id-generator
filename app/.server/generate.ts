@@ -8,8 +8,8 @@ let hyperid = createHyperIdInstance();
 
 export let idTypes = ["cuid", "nanoid", "uuid", "hyperid"] as const;
 
-let DEFAULT_ID_TYPE = "cuid" as const;
-let DEFAULT_ID_COUNT = 1 as const;
+export let DEFAULT_ID_TYPE = "cuid" as const;
+export let DEFAULT_ID_COUNT = 1 as const;
 
 export type IdType = (typeof idTypes)[number];
 
