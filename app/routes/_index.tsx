@@ -1,55 +1,49 @@
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "@vercel/remix";
-import { json, redirect } from "@vercel/remix";
+import type { LoaderFunctionArgs } from "@vercel/remix";
+import { json } from "@vercel/remix";
 import type { MetaFunction } from "@remix-run/react";
 import { Form, useLoaderData } from "@remix-run/react";
 import { copyToClipboard } from "copy-lite";
 
-import { getSession } from "~/.server/session";
-import type { IdType } from "~/.server/generate";
-import { generateIds, idTypes, schema } from "~/.server/generate";
+import {
+  DEFAULT_ID_COUNT,
+  DEFAULT_ID_TYPE,
+  generateIds,
+  idTypes,
+  schema,
+} from "~/.server/generate";
 
 export let meta: MetaFunction = () => {
   return [{ title: "ID Generator" }];
 };
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  let session = await getSession(request);
-  let result = session.get();
+  let url = new URL(request.url);
 
-  return json(
-    { ...result, idTypes },
-    { headers: { "Set-Cookie": await session.save() } },
-  );
-}
+  let type = url.searchParams.get("type") ?? DEFAULT_ID_TYPE;
+  let count = url.searchParams.get("count") ?? DEFAULT_ID_COUNT;
 
-export async function action({ request }: ActionFunctionArgs) {
-  let session = await getSession(request);
-  let formData = await request.formData();
-  let type = formData.get("type");
-  let count = formData.get("count");
-
-  let result = schema.safeParse(Object.fromEntries(formData.entries()));
+  let result = schema.safeParse({ type, count });
 
   if (!result.success) {
     let errors = result.error.formErrors.fieldErrors;
     console.log(errors);
-    let typedType: IdType = "cuid";
-    if (type && typeof type === "string" && idTypes.includes(type as any)) {
-      typedType = type as any;
-    }
-    let typedCount = 1;
-    if (count && typeof count === "string") {
-      let maybe = parseInt(count, 10);
-      if (maybe && maybe > 0) typedCount = maybe;
-    }
-
-    session.set({ count: typedCount, ids: [], type: typedType, errors });
-    return redirect("/", { headers: { "Set-Cookie": await session.save() } });
+    return json({
+      errors,
+      idTypes,
+      ids: [] as string[],
+      type: null,
+      count: null,
+    });
   }
 
   let ids = generateIds(result.data.type, result.data.count);
-  session.set({ type: result.data.type, count: result.data.count, ids, });
-  return redirect("/", { headers: { "Set-Cookie": await session.save() } });
+
+  return json({
+    ...result.data,
+    ids,
+    idTypes,
+    errors: { type: [] as string[], count: [] as string[] },
+  });
 }
 
 export default function IndexPage() {
@@ -65,7 +59,7 @@ export default function IndexPage() {
               Here are your generated {data.type}s
             </p>
             <div className="mt-2 space-y-2">
-              {data.ids?.map((id, index) => (
+              {data.ids.map((id, index) => (
                 <input
                   key={id}
                   type="text"
@@ -88,22 +82,6 @@ export default function IndexPage() {
                 >
                   Copy
                 </button>
-
-                <Form
-                  reloadDocument
-                  method="post"
-                  action="/download"
-                  className="w-full"
-                >
-                  <button
-                    type="submit"
-                    name="download"
-                    value="true"
-                    className="w-full rounded-md bg-indigo-500 px-4 py-2 text-white md:w-auto"
-                  >
-                    Download
-                  </button>
-                </Form>
               </div>
             </div>
           </>
@@ -111,16 +89,15 @@ export default function IndexPage() {
       </div>
 
       <Form
-        replace
         className="mx-auto w-full max-w-screen-sm space-y-2 rounded bg-gray-100 p-4 py-4"
-        method="post"
+        replace
       >
         <label className="block text-xl">
           <span>What type of ID do you want to generate?</span>
           <select
             name="type"
             className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-            defaultValue={data.type}
+            defaultValue={data.type ?? "cuid"}
             {...getAria("type", data.errors.type)}
           >
             {data.idTypes.map((type) => (
@@ -129,7 +106,7 @@ export default function IndexPage() {
               </option>
             ))}
           </select>
-          {data.errors.type && data.errors.type.length > 0 ? (
+          {data.errors?.type && data.errors?.type.length > 0 ? (
             <ErrorMessages id="type" errors={data.errors.type} />
           ) : null}
         </label>
@@ -141,10 +118,10 @@ export default function IndexPage() {
             name="count"
             defaultValue={data.count ?? 1}
             className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-            {...getAria("count", data.errors.count)}
+            {...getAria("count", data.errors?.count)}
           />
-          {data.errors.count && data.errors.count.length > 0 ? (
-            <ErrorMessages id="count" errors={data.errors.count} />
+          {data.errors?.count && data.errors?.count.length > 0 ? (
+            <ErrorMessages id="count" errors={data.errors?.count} />
           ) : null}
         </label>
         <button
@@ -158,9 +135,16 @@ export default function IndexPage() {
   );
 }
 
-function ErrorMessages({ errors, id }: { id: string; errors: string[] }) {
+function ErrorMessages({
+  errors,
+  id,
+}: Readonly<{
+  id: string;
+  errors: string[];
+}>) {
+  if (errors.length === 0) return null;
   return (
-    <ul id={`${id}-errors`} className="text-red-500 text-sm p-2">
+    <ul id={`${id}-errors`} className="p-2 text-sm text-red-500">
       {errors.map((error) => (
         <li key={error}>{error}</li>
       ))}
@@ -169,7 +153,9 @@ function ErrorMessages({ errors, id }: { id: string; errors: string[] }) {
 }
 
 function getAria(id: string, errors: string[] = []) {
-  let hasErrors = errors.length > 0;
+  let hasErrors =
+    errors.filter((error): error is string => typeof error === "string")
+      .length > 0;
   return {
     "aria-invalid": hasErrors ? "true" : undefined,
     "aria-errormessage": hasErrors ? `${id}-errors` : undefined,
