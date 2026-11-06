@@ -1,0 +1,68 @@
+name: open-canonical-pr
+
+on:
+  push:
+    branches:
+      - cursor/open-canonical-pr-9e26
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  open:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const head = 'cursor/canonical-meta-9e26'
+            const { owner, repo } = context.repo
+            const existing = await github.rest.pulls.list({
+              owner,
+              repo,
+              head: `${owner}:${head}`,
+              base: 'main',
+              state: 'open',
+            })
+            if (existing.data.length > 0) {
+              console.log(existing.data[0].html_url)
+              return
+            }
+            const created = await github.rest.pulls.create({
+              owner,
+              repo,
+              head,
+              base: 'main',
+              title: 'feat(seo): add id.mcan.sh canonical and description',
+              body: [
+                '## Why',
+                '',
+                'The app is served from id.mcan.sh, cuid.mcan.sh, and cuid.logansteele.llc. The HTML head had no canonical URL or description, so crawlers could treat those hosts as separate copies.',
+                '',
+                'This change always names `https://id.mcan.sh` as the canonical host and adds a short description from the page copy.',
+                '',
+                '## What changed',
+                '',
+                '- Root loader builds a canonical URL from the request pathname on `https://id.mcan.sh`, with no query string and no request host.',
+                '- `Layout` emits `<link rel="canonical">`.',
+                '- The home page meta description is `Generate cuid, uuid, nanoid, and hyperid values.`',
+                '',
+                '## Scope',
+                '',
+                'Covers HTML head tags. It does not redirect other hosts to id.mcan.sh.',
+                '',
+                '## Tradeoffs',
+                '',
+                'The description is existing page copy, not new marketing text.',
+                '',
+                '## Blast Radius',
+                '',
+                'Crawlers and link previews see new head tags. ID generation is unchanged.',
+                '',
+                '## Verification',
+                '',
+                'Preview curl follows the Vercel preview URL after the branch deploy finishes.',
+              ].join('\n'),
+            })
+            console.log(created.data.html_url)
