@@ -1,4 +1,10 @@
-# Welcome to Remix!
+# ID Generator
+
+Generate cuid, uuid, nanoid, and hyperid values at [id.mcan.sh](https://id.mcan.sh).
+
+HTML pages emit a canonical URL on `https://id.mcan.sh` even when the app is served from `cuid.mcan.sh` or `cuid.logansteele.llc`. The home page description is the sentence above.
+
+## Remix starter
 
 - [Remix Docs](https://remix.run/docs)
 

@@ -12,8 +12,14 @@ import {
   schema,
 } from "~/.server/generate";
 
+export let INDEX_DESCRIPTION =
+  "Generate cuid, uuid, nanoid, and hyperid values.";
+
 export let meta: MetaFunction = () => {
-  return [{ title: "ID Generator" }];
+  return [
+    { title: "ID Generator" },
+    { name: "description", content: INDEX_DESCRIPTION },
+  ];
 };
 
 export async function loader({ request }: LoaderFunctionArgs) {
